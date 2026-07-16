@@ -150,13 +150,3 @@ def _extract_medicines_impl(text: str) -> dict:
         index += 1
 
     return {"medicines": [m.to_dict() for m in medicines]}
-if __name__ == "__main__":
-    sample_text = """
-    TAB PARACETAMOL 650 MG
-    1-0-1
-
-    CAP AMOXICILLIN 500 MG
-    1-1-1
-    """
-    result = extract_medicines(sample_text)
-    print(result)
