@@ -1,0 +1,18 @@
+# --------------------------------------------------------------------
+# OCR Module Dependencies - AI-Powered Medical Report Simplifier
+# --------------------------------------------------------------------
+# Install with: pip install -r requirements.txt
+
+# OCR engine
+paddleocr==2.7.3
+paddlepaddle==2.6.1
+
+# Image processing (grayscale, denoising, contrast, resizing)
+opencv-python==4.10.0.84
+numpy==1.26.4
+
+# PDF page rasterization (PDF -> image), no external system binary needed
+PyMuPDF==1.24.9
+
+# General image I/O support used internally by some OCR/CV utilities
+Pillow==10.4.0
