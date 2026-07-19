@@ -42,7 +42,7 @@ _NUMERIC_COLUMN_RE = re.compile(r"^\d{1,3}(,\d{2,3})*(\.\d{1,2})?$")
 # A small standalone integer, commonly a leading serial number (S.No).
 _SMALL_INT_RE = re.compile(r"^\d{1,3}$")
 
-_TABLE_HEADERS: List[str] = ["No", "Medicine", "Qty", "Rate", "Amount"]
+_TABLE_HEADERS: List[str] = ["Medicine", "Qty", "Rate", "Amount"]
 
 
 def _clean_line(line: str) -> str:
@@ -239,11 +239,7 @@ def format_pharmacy_bill(text: str) -> str:
         sections.append("Bill Details\n" + "\n".join(header_lines))
 
     if items:
-        numbered_rows = [
-            (index + 1, medicine, qty, rate, amount)
-            for index, (medicine, qty, rate, amount) in enumerate(items)
-        ]
-        table = tabulate(numbered_rows, headers=_TABLE_HEADERS, tablefmt="grid")
+        table = tabulate(items, headers=_TABLE_HEADERS, tablefmt="presto")
         sections.append("Items\n" + table)
 
     if not sections:

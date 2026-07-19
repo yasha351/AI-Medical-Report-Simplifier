@@ -204,5 +204,5 @@ def format_lab_report(text: str) -> str:
             "Original OCR text:\n" + text.strip()
         )
 
-    table = tabulate(rows, headers=_TABLE_HEADERS, tablefmt="grid")
+    table = tabulate(rows, headers=_TABLE_HEADERS, tablefmt="presto")
     return table
