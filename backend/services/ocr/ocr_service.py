@@ -8,7 +8,7 @@ import fitz  # PyMuPDF - used to rasterize PDF pages into images
 import numpy as np
 from paddleocr import PaddleOCR
 
-from preprocess import preprocess_image
+from services.ocr.preprocess import preprocess_image, load_image
 
 # --------------------------------------------------------------------------
 # Logging configuration
@@ -203,16 +203,13 @@ def extract_text(file_path: str) -> str:
     validate_file(file_path)
 
     # Step 2: Load page/image data depending on file type.
+    # Step 2: Load page/image data depending on file type.
     if is_pdf(file_path):
-        logger.info("Detected PDF file. Converting pages to images...")
-        raw_images = convert_pdf_to_images(file_path)
+          logger.info("Detected PDF file. Converting pages to images...")
+          raw_images = convert_pdf_to_images(file_path)
     else:
-        logger.info("Detected image file. Loading directly...")
-        # Local import to avoid a circular/unused import at module load
-        # time when only PDF functionality is exercised.
-        from preprocess import load_image
-
-        raw_images = [load_image(file_path)]
+         logger.info("Detected image file. Loading directly...")
+         raw_images = [load_image(file_path)]
 
     logger.info("Loaded %d page(s)/image(s) for OCR.", len(raw_images))
 

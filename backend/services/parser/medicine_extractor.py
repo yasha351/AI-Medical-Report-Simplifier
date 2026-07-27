@@ -1,46 +1,55 @@
 """
 medicine_extractor.py
 
-Medicine Extraction Module for the Prescription Analysis pipeline.
+Medicine extraction module for a prescription analysis pipeline.
 
-Responsibility: convert cleaned prescription text into structured
-medicine data. NO OCR, NO LLM calls, NO medical explanation/validation
-— extraction only.
-
-STRUCTURE ASSUMPTION:
-- Each medicine's info is one "block", separated from the next by a
-  blank line.
-- The FIRST line of each block is always the medicine name line
-  (dosage/unit included on that line if OCR captured it).
-- All other lines in the block are classified by their CONTENT
-  (schedule / timing / form / duration / frequency), not their
-  position — so line order within a block doesn't matter.
+Handles two input shapes automatically:
+  1. Block format - blank-line-separated blocks, first line = name
+  2. Table format - pipe-delimited rows with dynamic headers
 
 Public API:
     extract_medicines(text: str) -> dict
 """
 
+import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional
 
-from .regex_patterns import MEDICINE_LINE_PATTERN
-from .utilsy import (
-    split_into_blocks,
-    classify_line,
-    normalize_timing,
-    normalize_name,
-    normalize_unit,
-    normalize_dosage,
-)
+try:
+    from .regex_patterns import MEDICINE_LINE_PATTERN
+    from .utilsy import (
+        classify_line,
+        is_table_format,
+        normalize_dosage,
+        normalize_name,
+        normalize_timing,
+        normalize_timing_fuzzy,
+        normalize_unit,
+        parse_table_generic,
+        split_into_blocks,
+        strip_form_prefix,
+    )
+except ImportError:
+    from regex_patterns import MEDICINE_LINE_PATTERN
+    from utilsy import (
+        classify_line,
+        is_table_format,
+        normalize_dosage,
+        normalize_name,
+        normalize_timing,
+        normalize_timing_fuzzy,
+        normalize_unit,
+        parse_table_generic,
+        split_into_blocks,
+        strip_form_prefix,
+    )
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class Medicine:
-    """Structured representation of a single extracted medicine entry."""
-
     name: str
     dosage: Optional[str] = None
     unit: Optional[str] = None
@@ -50,36 +59,104 @@ class Medicine:
     duration: Optional[str] = None
     frequency: Optional[str] = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Optional[str]]:
         return asdict(self)
 
 
+HEADER_ALIASES = {
+    "medicine": "name",
+    "medicine_name": "name",
+    "drug": "name",
+    "drug_name": "name",
+    "name": "name",
+    "dosage": "_dosage_or_timing",
+    "dose": "_dosage_or_timing",
+    "timing": "timing",
+    "time": "timing",
+    "schedule": "schedule",
+    "frequency": "frequency",
+    "duration": "duration",
+    "days": "duration",
+    "form": "form",
+    "unit": "unit",
+}
+
+
 def extract_medicines(text: str) -> dict:
-    """
-    Extract structured medicine data from cleaned prescription text.
-
-    This is the only public function exposed by this module. It must
-    never raise — on any failure it degrades gracefully to an empty
-    medicines list.
-
-    Args:
-        text: Cleaned prescription text (output of OCR / Text Cleaning
-            module).
-
-    Returns:
-        {"medicines": [{"name": ..., "dosage": ..., "unit": ...,
-                         "schedule": ..., "timing": ..., "form": ...,
-                         "duration": ..., "frequency": ...}, ...]}
-        Any field not found in the input is set to None.
-    """
+    """Public entry point. Auto-detects table vs block format."""
     try:
-        return _extract(text)
+        if is_table_format(text):
+            return _extract_table(text)
+        return _extract_blocks(text)
     except Exception:
         logger.exception("Unexpected error during medicine extraction")
         return {"medicines": []}
 
 
-def _extract(text: str) -> dict:
+def extract_table_key_values(text: str) -> dict:
+    """
+    Return pure dynamic JSON-style rows exactly from table headers.
+
+    Use this when you want:
+      {"medicine": "...", "dosage": "...", "duration": "..."}
+    instead of normalized medicine fields.
+    """
+    return {"rows": parse_table_generic(text)}
+
+
+def _extract_table(text: str) -> dict:
+    rows = parse_table_generic(text)
+    medicines: List[dict] = []
+
+    for row in rows:
+        med = Medicine(name="")
+        extras: Dict[str, object] = {}
+
+        for header, value in row.items():
+            if not value:
+                continue
+            if header.endswith("_raw") or header == "_extra_columns":
+                extras[header] = value
+                continue
+
+            canonical = HEADER_ALIASES.get(header, header)
+
+            if canonical == "name":
+                med.name = normalize_name(strip_form_prefix(str(value)))
+            elif canonical == "_dosage_or_timing":
+                timing_guess = normalize_timing_fuzzy(str(value))
+                if timing_guess:
+                    med.timing = timing_guess
+                    med.dosage = str(value).strip()
+                else:
+                    med.dosage = str(value).strip()
+            elif canonical == "duration":
+                med.duration = str(value).strip()
+            elif canonical == "schedule":
+                med.schedule = str(value).strip()
+            elif canonical == "frequency":
+                med.frequency = str(value).strip()
+            elif canonical == "form":
+                med.form = str(value).strip()
+            elif canonical == "unit":
+                med.unit = str(value).strip()
+            elif canonical == "timing":
+                med.timing = normalize_timing_fuzzy(str(value)) or str(value).strip()
+            else:
+                extras[header] = value
+
+        if not med.name:
+            continue
+
+        med_dict = med.to_dict()
+        med_dict.update(extras)
+        medicines.append(med_dict)
+        logger.debug("Extracted medicine from table: %s", med_dict)
+
+    return {"medicines": medicines}
+
+
+def _extract_blocks(text: str) -> dict:
     blocks = split_into_blocks(text)
     medicines: List[Medicine] = []
 
@@ -87,10 +164,9 @@ def _extract(text: str) -> dict:
         if not block:
             continue
 
-        name_line = block[0]
-        med = _parse_name_line(name_line)
+        med = _parse_name_line(block[0])
         if med is None:
-            continue  # unusable first line, skip this block
+            continue
 
         for line in block[1:]:
             kind = classify_line(line)
@@ -104,21 +180,14 @@ def _extract(text: str) -> dict:
                 med.duration = line.strip()
             elif kind == "frequency":
                 med.frequency = line.strip()
-            # "unknown" lines are ignored, never crash the pipeline
 
         medicines.append(med)
-        logger.debug("Extracted medicine: %s", med)
+        logger.debug("Extracted medicine from block: %s", med)
 
-    return {"medicines": [m.to_dict() for m in medicines]}
+    return {"medicines": [medicine.to_dict() for medicine in medicines]}
 
 
 def _parse_name_line(line: str) -> Optional[Medicine]:
-    """
-    Parse the first line of a block as the medicine name line.
-    Tries to also pull dosage+unit if present; falls back to
-    name-only if no dosage number is found (handles OCR where the
-    dosage is missing or misread).
-    """
     match = MEDICINE_LINE_PATTERN.match(line)
     if match:
         return Medicine(
@@ -134,30 +203,17 @@ def _parse_name_line(line: str) -> Optional[Medicine]:
 
 
 if __name__ == "__main__":
-    import json
+    table_sample = """
+Medicine                  | Dosage                          | Duration
+-------------------------------------------------------------------------
+TAB. DEMO mEDiCiNE 1      | I Motning, 1 Night.              | 10 Days
+CAP. DEMO mEOiCIne 2      | 1 Moming, 1 Night                | 10 Days
+TAB. DEMO MEDICINE 3      | 1 Momung, 1 At, 1 Eve, 1 Night   | 10 Days
+TAB. DEMO MEDICINE 4      | 1/2 Momlng, 1/2 Night            | 10 Days
+"""
 
-    sample_text = """
-    TAB PARACETAMOL 650 MG
-    1-0-1
+    print("--- Pure dynamic table key-value JSON ---")
+    print(json.dumps(extract_table_key_values(table_sample), indent=2))
 
-    Amoxicillin 500 mg
-    1 capsule
-    Morning • Night
-    7 days
-
-    Cetirizine 10 mg
-
-    DEMO MEDICINE 1
-    1 Morning, 1 Night (Before Food)
-    10 Days (Tot:20 Tab)
-
-    Vitamin D3 60000 IU
-    Once weekly
-
-    Azithromycin 250 mg
-    1 tablet
-    Morning
-    """
-
-    result = extract_medicines(sample_text)
-    print(json.dumps(result, indent=2))
+    print("\n--- Normalized medicines JSON ---")
+    print(json.dumps(extract_medicines(table_sample), indent=2))
