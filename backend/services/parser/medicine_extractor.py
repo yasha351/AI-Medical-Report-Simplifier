@@ -11,7 +11,6 @@ Public API:
     extract_medicines(text: str) -> dict
 """
 
-import json
 import logging
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional
@@ -200,20 +199,3 @@ def _parse_name_line(line: str) -> Optional[Medicine]:
     if not cleaned_name:
         return None
     return Medicine(name=normalize_name(cleaned_name))
-
-
-if __name__ == "__main__":
-    table_sample = """
-Medicine                  | Dosage                          | Duration
--------------------------------------------------------------------------
-TAB. DEMO mEDiCiNE 1      | I Motning, 1 Night.              | 10 Days
-CAP. DEMO mEOiCIne 2      | 1 Moming, 1 Night                | 10 Days
-TAB. DEMO MEDICINE 3      | 1 Momung, 1 At, 1 Eve, 1 Night   | 10 Days
-TAB. DEMO MEDICINE 4      | 1/2 Momlng, 1/2 Night            | 10 Days
-"""
-
-    print("--- Pure dynamic table key-value JSON ---")
-    print(json.dumps(extract_table_key_values(table_sample), indent=2))
-
-    print("\n--- Normalized medicines JSON ---")
-    print(json.dumps(extract_medicines(table_sample), indent=2))
