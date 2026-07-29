@@ -1,4 +1,4 @@
-from backend.services.ocr.ocr_service import extract_text
+from services.ocr.ocr_service import extract_text
 def parse_lab_report(file_path):
     raw_text = extract_text(file_path)
 
