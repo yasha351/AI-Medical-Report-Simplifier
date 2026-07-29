@@ -3,45 +3,39 @@ import logging
 from services.ocr.ocr_service import extract_text
 from services.ocr.formatters.prescription_formatter import format_prescription
 from services.parser.medicine_extractor import extract_medicines
+from services.llm.gemini_service import summarize_report
 
 logger = logging.getLogger(__name__)
 
 
 def process_prescription(file_path: str) -> dict:
-    """
-    Runs the complete prescription pipeline.
-
-    Image/PDF
-        ↓
-    OCR
-        ↓
-    Formatter
-        ↓
-    Medicine Extractor
-        ↓
-    JSON
-    """
-
     try:
-        # Step 1 - OCR
         raw_text = extract_text(file_path)
 
         if not raw_text or not raw_text.strip():
-            logger.warning("OCR returned empty text.")
-            return {"medicines": []}
+            return {
+                "parsed_data": {"medicines": []},
+                "ai_summary": None,
+            }
 
-        # Step 2 - Format OCR output
         formatted_table = format_prescription(raw_text)
 
-        if formatted_table.startswith(
-            "No medicine rows could be automatically detected."
-        ):
-            logger.warning("Formatter found no medicines.")
-            return {"medicines": []}
+        if formatted_table.startswith("No medicine rows could be automatically detected."):
+            return {
+                "parsed_data": {"medicines": []},
+                "ai_summary": None,
+            }
 
-        # Step 3 - Convert to JSON
-        return extract_medicines(formatted_table)
+        parsed_data = extract_medicines(formatted_table)
+        ai_summary = summarize_report(parsed_data)
+
+        return {
+            
+            "ai_summary": ai_summary.strip(),
+        }
 
     except Exception as e:
         logger.exception(e)
-        return {"medicines": []}
+        return {
+    "summary": "Unable to analyze this prescription. Please try again with a clearer image."
+      }  
