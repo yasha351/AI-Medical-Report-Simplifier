@@ -11,7 +11,7 @@
 # NO validation, saving, or business logic belongs here.
 # ------------------------------------------------------------
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Form
 from controllers.upload_controller import handle_upload
 
 # Create a router object.
@@ -21,7 +21,10 @@ router = APIRouter()
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(
+    file: UploadFile = File(...),
+    upload_type: str = Form(...)
+):
     """
     Endpoint: POST /upload
 
@@ -31,5 +34,5 @@ async def upload_file(file: UploadFile = File(...)):
     # Delegate everything to the controller.
     # The route itself does NOT know how to validate or save files —
     # that separation is intentional (Single Responsibility Principle).
-    result = await handle_upload(file)
+    result = await handle_upload(file, upload_type)
     return result
