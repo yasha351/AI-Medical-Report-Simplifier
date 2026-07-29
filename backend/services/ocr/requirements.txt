@@ -6,6 +6,11 @@
 paddleocr==2.7.3
 paddlepaddle==2.6.2
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+
+# Image processing (grayscale, denoising, contrast, resizing)
+>>>>>>> Stashed changes
 =======
 
 # Image processing (grayscale, denoising, contrast, resizing)

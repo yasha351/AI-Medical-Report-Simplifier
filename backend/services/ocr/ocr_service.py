@@ -9,7 +9,11 @@ import numpy as np
 from paddleocr import PaddleOCR
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 from services.ocr.preprocess import preprocess_image, load_image
+=======
+from services.ocr.preprocess import preprocess_image,load_image
+>>>>>>> Stashed changes
 =======
 from services.ocr.preprocess import preprocess_image,load_image
 >>>>>>> Stashed changes
