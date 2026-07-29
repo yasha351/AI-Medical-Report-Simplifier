@@ -34,7 +34,7 @@ def process_lab_report(file_path):
 
 if __name__ == "__main__":
     explanation = process_lab_report(
-        "backend/services/ocr/sample_reports/sample_report.pdf"
+        "services/ocr/sample_reports/sample_report.pdf"
     )
 
     print("\n===== FINAL OUTPUT =====\n")

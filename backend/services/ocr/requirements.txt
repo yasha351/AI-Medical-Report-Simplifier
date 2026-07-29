@@ -5,16 +5,11 @@
 
 paddleocr==2.7.3
 paddlepaddle==2.6.2
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
+
 
 # Image processing (grayscale, denoising, contrast, resizing)
->>>>>>> Stashed changes
-=======
 
 # Image processing (grayscale, denoising, contrast, resizing)
->>>>>>> Stashed changes
 opencv-python==4.6.0.66
 numpy==1.26.4
 PyMuPDF==1.24.9

@@ -10,7 +10,7 @@
 # ------------------------------------------------------------
 
 from fastapi import FastAPI
-from backend.routes.upload import router as upload_router
+from routes.upload import router as upload_router
 
 # Create the FastAPI application instance.
 # This "app" object is what Uvicorn runs when we start the server.
