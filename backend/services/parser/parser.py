@@ -23,12 +23,10 @@ Pipeline:
       -> build JSON
       -> return JSON
 """
-
 from typing import Optional
-
-from aliases import normalize_test_name
-from models import LabTest, Patient, Report
-from utils import (
+from .aliases import normalize_test_name
+from .models import LabTest, Patient, Report
+from .utils import (
     clean_text,
     extract_patient_field,
     extract_test_from_line,
@@ -36,7 +34,6 @@ from utils import (
     is_patient_info_line,
     split_lines,
 )
-
 
 def parse_lab_report(text: str) -> dict:
     """

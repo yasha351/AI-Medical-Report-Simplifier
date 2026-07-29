@@ -17,7 +17,8 @@ module reusable and independently testable.
 import re
 from typing import List, Optional, Tuple, Union
 
-from models import LabTest
+
+from .models import LabTest
 
 # ---------------------------------------------------------------------------
 # Text cleaning

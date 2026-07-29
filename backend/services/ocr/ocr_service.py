@@ -8,7 +8,11 @@ import fitz  # PyMuPDF - used to rasterize PDF pages into images
 import numpy as np
 from paddleocr import PaddleOCR
 
+<<<<<<< Updated upstream
 from services.ocr.preprocess import preprocess_image, load_image
+=======
+from services.ocr.preprocess import preprocess_image,load_image
+>>>>>>> Stashed changes
 
 # --------------------------------------------------------------------------
 # Logging configuration
@@ -57,8 +61,7 @@ def _get_ocr_engine() -> PaddleOCR:
         logger.info("Initializing PaddleOCR engine (first-time load)...")
         _ocr_engine = PaddleOCR(
             use_angle_cls=True,  # Detects and corrects rotated text lines.
-            lang="en",           # Medical reports in this project are English.
-            show_log=False,      # Keep PaddleOCR's internal logs quiet.
+            lang="en",           # Medical reports in this project are English.    # Keep PaddleOCR's internal logs quiet.
         )
         logger.info("PaddleOCR engine initialized successfully.")
     return _ocr_engine
